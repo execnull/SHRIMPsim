@@ -38,6 +38,7 @@ HEADERS  += qshrimp.h \
     modelshrimp.h \
     patternbank.h \
     qt_opencv.h \
-    utils.h
+    utils.h \
+    asm.h
 
 FORMS    += qshrimp.ui
