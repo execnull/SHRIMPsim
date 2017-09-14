@@ -62,7 +62,7 @@ QVector<int> Settings::getThr()
 
 bool Settings::getIsGreyscale()
 {
-    return (thr.size() == 3) ? false : true;
+    return (thr.size() == 3) ? true : false;
  //   return ((thr.size() == 3)|| (thr[1] != 0 && thr[2] != 0)) ? true : false;
 
 }
