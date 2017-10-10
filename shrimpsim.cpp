@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
     parser.setApplicationDescription("Simulating the Human bRain for IMage Processing");
     QString errorMessage;
 
-    ModelShrimp ms; ///The model that is controlling all the options
-    qshrimp gui; ///The graphical user interface for the model
+    ModelShrimp ms; ///The model that is controlling everything
+    qshrimp gui(&ms); ///The graphical user interface for the model
 
     //Here we parse the command line and then examine the error message.
     //The later is filled by the command line parser. It's different possibilities

@@ -28,6 +28,7 @@ class Ui_qshrimp
 public:
     QAction *action_About;
     QAction *action_Quit;
+    QAction *actionOpen_File;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -41,7 +42,7 @@ public:
     {
         if (qshrimp->objectName().isEmpty())
             qshrimp->setObjectName(QStringLiteral("qshrimp"));
-        qshrimp->resize(944, 639);
+        qshrimp->resize(1222, 751);
         QFont font;
         font.setPointSize(8);
         qshrimp->setFont(font);
@@ -49,12 +50,14 @@ public:
         action_About->setObjectName(QStringLiteral("action_About"));
         action_Quit = new QAction(qshrimp);
         action_Quit->setObjectName(QStringLiteral("action_Quit"));
+        actionOpen_File = new QAction(qshrimp);
+        actionOpen_File->setObjectName(QStringLiteral("actionOpen_File"));
         centralWidget = new QWidget(qshrimp);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         qshrimp->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(qshrimp);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 944, 23));
+        menuBar->setGeometry(QRect(0, 0, 1222, 24));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuView = new QMenu(menuBar);
@@ -75,6 +78,7 @@ public:
         menuBar->addAction(menuView->menuAction());
         menuBar->addAction(menuPattern_Bank->menuAction());
         menuBar->addAction(menuQuit->menuAction());
+        menuFile->addAction(actionOpen_File);
         menuFile->addAction(action_Quit);
         menuQuit->addAction(action_About);
 
@@ -88,6 +92,7 @@ public:
         qshrimp->setWindowTitle(QApplication::translate("qshrimp", "qSHRIMP", Q_NULLPTR));
         action_About->setText(QApplication::translate("qshrimp", "&About", Q_NULLPTR));
         action_Quit->setText(QApplication::translate("qshrimp", "&Quit", Q_NULLPTR));
+        actionOpen_File->setText(QApplication::translate("qshrimp", "&Open File(s)", Q_NULLPTR));
         menuFile->setTitle(QApplication::translate("qshrimp", "&File", Q_NULLPTR));
         menuView->setTitle(QApplication::translate("qshrimp", "&View", Q_NULLPTR));
         menuPattern_Bank->setTitle(QApplication::translate("qshrimp", "&Pattern Bank", Q_NULLPTR));

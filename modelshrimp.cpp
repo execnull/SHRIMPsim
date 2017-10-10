@@ -14,6 +14,21 @@ ModelShrimp::ModelShrimp()
 
 }
 
+void ModelShrimp::addImage(QFileInfo& file)
+{
+    originalImages[file.canonicalFilePath()] = imread(qPrintable(file.canonicalFilePath()), IMREAD_COLOR);
+    greyscalelImages[file.canonicalFilePath()] = imread(qPrintable(file.canonicalFilePath()), IMREAD_GRAYSCALE );
+    qDebug() << "\t" << file.baseName()
+             << ": Dimensions:" << originalImages[file.canonicalFilePath()].rows
+             << "x" << originalImages[file.canonicalFilePath()].cols;
+
+}
+
+void ModelShrimp::getOriginalImages()
+{
+
+}
+
 void ModelShrimp::parseSettings(QCommandLineParser &parser)
 {
     //Just pass the basic settings to the Settings object
@@ -39,19 +54,11 @@ void ModelShrimp::parseSettings(QCommandLineParser &parser)
             QDirIterator it(dir, QStringList() << "*.jpg", QDir::Files);
             while (it.hasNext()) {
                 QFileInfo diritem = it.next();
-                originalImages[diritem.canonicalFilePath()] = imread(qPrintable(diritem.canonicalFilePath()), IMREAD_COLOR);
-                greyscalelImages[diritem.canonicalFilePath()] = imread(qPrintable(diritem.canonicalFilePath()), IMREAD_GRAYSCALE );
-                qDebug() << "\t" << diritem.baseName()
-                         << ": Dimensions:" << originalImages[diritem.canonicalFilePath()].rows
-                         << "x" << originalImages[diritem.canonicalFilePath()].cols;
+                addImage(diritem);
             }
         }
         else { //if it's a list of images, just add them
-            originalImages[file.canonicalFilePath()] = imread(qPrintable(file.canonicalFilePath()), IMREAD_COLOR);
-            greyscalelImages[file.canonicalFilePath()] = imread(qPrintable(file.canonicalFilePath()), IMREAD_GRAYSCALE );
-            qDebug() << "\t" << file.baseName()
-                     << ": Dimensions:" << originalImages[file.canonicalFilePath()].rows
-                     << "x" << originalImages[file.canonicalFilePath()].cols;
+            addImage(file);
         }
     }
 
@@ -63,7 +70,6 @@ void ModelShrimp::parseSettings(QCommandLineParser &parser)
     for (const auto& img: greyscalelImages.keys()) {
         start = std::clock();
         downsampledImages[img] = Utils::downsampleImage(greyscalelImages[img], modelSettings.getThr());
-        qDebug() << "testing... " <<  downsampledImages[img].rows;
         duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
         QFileInfo f = img;
         qDebug() << "\t"<< f.baseName() << ":"<< duration << "ms";

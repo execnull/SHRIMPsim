@@ -7,6 +7,7 @@
 
 #include <QCommandLineParser>
 #include <QMap>
+#include <QFileInfo>
 
 /*!
   The model handles the transformation of the images. 
@@ -21,6 +22,10 @@ public:
       However, more can be provided, e.g. to parse the settings from the gui.
     */
     void parseSettings(QCommandLineParser &parser);
+
+    void addImage(QFileInfo& file);
+
+    void getOriginalImages();
 
     /*!
       Function loading the Pattern Bank from the class
