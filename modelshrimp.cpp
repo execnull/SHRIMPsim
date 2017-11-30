@@ -2,6 +2,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QDirIterator>
+#include <QJsonObject>
 #include <QJsonDocument>
 
 #include <ctime>
@@ -14,6 +15,10 @@ ModelShrimp::ModelShrimp()
 
 }
 
+ModelShrimp::~ModelShrimp()
+{
+}
+
 void ModelShrimp::addImage(QFileInfo& file)
 {
     originalImages[file.canonicalFilePath()] = imread(qPrintable(file.canonicalFilePath()), IMREAD_COLOR);
@@ -24,9 +29,13 @@ void ModelShrimp::addImage(QFileInfo& file)
 
 }
 
-void ModelShrimp::getOriginalImages()
+QStringList ModelShrimp::getLoadedImages()
 {
-
+    QStringList imagelist;
+    for (auto img: originalImages.keys()) {
+        imagelist << img;
+    }
+    return imagelist;
 }
 
 void ModelShrimp::parseSettings(QCommandLineParser &parser)
@@ -39,11 +48,13 @@ void ModelShrimp::parseSettings(QCommandLineParser &parser)
 
     //parse the path for saving the results
     if (parser.isSet("saveres")) {
-        saveResults = true;
-        saveres = QFileInfo(parser.value("saveres")).canonicalFilePath();
-        qDebug() << "ModelShrimp: Results will be saved at " << saveres;
+        saveResults = QFileInfo(parser.value("saveres")).canonicalFilePath();
+        qDebug() << "ModelShrimp: Results will be saved at " << saveResults;
     }
 
+    if (parser.isSet("savepb")) {
+        savePB = QFileInfo(parser.value("savepb")).absoluteFilePath();
+    }
 
     qDebug() << "ModelShrimp: Adding image for processing: ";
     const QStringList args = parser.positionalArguments();
@@ -75,39 +86,45 @@ void ModelShrimp::parseSettings(QCommandLineParser &parser)
         qDebug() << "\t"<< f.baseName() << ":"<< duration << "ms";
     }
 
-    //Pattern Bank parsing
+    qDebug() << "ModelShrimp: Setting the PB";
     if (!parser.isSet("pb")) {
-        //Set the PatternBank to self-train
-        pb = new PatternBank(modelSettings);
         qDebug() << "ModelShrimp: PB not set, will use self-training";
-        pb->setImagelist(downsampledImages);
+        pb.setImagelist(downsampledImages);
+        pb.createPatternBank(&modelSettings); //at that place we generate the PB
+
     }
     else {
-        //now this part needs some work to be done using the loadPatternBank function which follows.
-        //pb = new PatternBank(parser.value("pb"));
-        pb->setImagelist(downsampledImages);
+        loadPatternBank(parser.value("pb"));
     }
-
-    if (parser.isSet("savepb")) {
-        qDebug() << "Pattern Bank will be saved at" << parser.value("savepb");
-        //  pb->savePatternBank(parser.value("savepb"));
-    }
-
-
 }
 
-void ModelShrimp::loadPatternBank()
+bool ModelShrimp::loadPatternBank(const QString pblocation)
 {
-    //two different cases for loading
-    //1. json
-    //2. filelist
+    QFile pbjson(pblocation);
+    if (!pbjson.open(QIODevice::ReadOnly)) {
+        qWarning("Couldn't open Pattern Bank.");
+        return false;
+    }
+    QByteArray json = pbjson.readAll();
+    QJsonDocument pbload(QJsonDocument::fromJson(json));
+    QJsonObject mainObject = pbload.object();
+
+    QJsonObject settingsObject = mainObject["settings"].toObject();
+    modelSettings.setNpatt(settingsObject["npatt"].toInt());
+    modelSettings.setBwidth(settingsObject["bwidth"].toDouble());
+    modelSettings.setThr(settingsObject["thrs"].toArray());
+
+    QJsonObject pbObject = mainObject["patternBank"].toObject();
+    pb.setPatternBank(pbObject["accepted_patt"].toArray());
+
+    return true;
 }
 
-bool ModelShrimp::writePatternBank()
+bool ModelShrimp::writePatternBank(const QString pblocation)
 {
-    QFile saveFile("saved.json");
+    QFile saveFile(pblocation);
     if (!saveFile.open(QIODevice::WriteOnly)) {
-        qWarning("Couldn't open save file.");
+        qWarning("Couldn't open Pattern Bank for saving.");
         return false;
     }
 
@@ -117,7 +134,7 @@ bool ModelShrimp::writePatternBank()
     modelSettings.write(settingsObject);
     mainObject["settings"] = settingsObject;
     QJsonObject pbObject;
-    pb->write(pbObject);
+    pb.write(pbObject);
     mainObject["patternBank"] = pbObject;
     QJsonDocument saveDoc(mainObject);
     saveFile.write(saveDoc.toJson());
@@ -127,32 +144,23 @@ bool ModelShrimp::writePatternBank()
 
 void ModelShrimp::runMS()
 {
-    qDebug() << "----- Run ModelShrimp sept-----" ;
-    modelSettings.printSettings();
-    qDebug() << "Imagelist size: " << originalImages.size();
-    pb->createPatternBank(); //at that place we generate the PB
-    QVector<int> accepted_patt = pb->getPatternBank(); //and then we load the accepted patterns
-
+    qDebug() << "----- Run ModelShrimp -----" ;
+    //modelSettings.printSettings();
+    QVector<int> accepted_patt = pb.getPatternBank(); //and then we load the accepted patterns
     for (const auto& imgname: downsampledImages.keys()) {
         Mat img = downsampledImages.value(imgname);
         qDebug() << "Reconstructing " << imgname;
         Mat recImg(img.rows, img.cols, 0, Scalar(255));
-        qDebug() << "reco" << recImg.rows << " " << recImg.cols;
         for (int y = 0; y < img.rows - 2; y++) {
             for (int x = 0; x < img.cols - 2; x++) {
                 Mat p = img(Rect(x, y, 3, 3)).clone(); //create pattern
                 if ( std::find(accepted_patt.begin(),
                                accepted_patt.end(),
                                Utils::getPatternAddress(p, 3, modelSettings.getThr())) != accepted_patt.end() ) {
-                    qDebug() << "matched!" ;
                     Rect roi(x,y,3,3);
-                    qDebug() << roi.area();
                     Mat bwroi = img(roi).clone();
-                    qDebug() << bwroi.rows << bwroi.cols;
                     bwroi.copyTo(recImg(roi));
                 }
-                //else
-                  //  qDebug() << "not matched" << Utils::getPatternAddress(p, 3, modelSettings.getThr());
             }
         }
 
@@ -161,18 +169,20 @@ void ModelShrimp::runMS()
 
     //Save the output
     for (const auto& img: originalImages.keys()) {
-        if (saveResults) {
+        if (saveResults != NULL) {
             QFileInfo imginfo = img;
             qDebug() << "Saving results for" << imginfo.baseName();
             //save the original image
-            if (imginfo.absolutePath() != saveres) {
-                imwrite(qPrintable(saveres + "/" + imginfo.baseName() +
+            if (imginfo.absolutePath() != saveResults) {
+                imwrite(qPrintable(saveResults + "/" + imginfo.baseName() +
                                    "_1original." + imginfo.completeSuffix()),
                         originalImages[img]);
 
             }
             //save the greyscale
-            imwrite(qPrintable(saveres + "/" + imginfo.baseName() +
+            qDebug() << qPrintable(saveResults + "/" + imginfo.baseName() +
+                                   "_2greyscale." + imginfo.completeSuffix());
+            imwrite(qPrintable(saveResults + "/" + imginfo.baseName() +
                                "_2greyscale." + imginfo.completeSuffix()),
                     greyscalelImages[img]);
 
@@ -180,13 +190,13 @@ void ModelShrimp::runMS()
             QString thrs = "thr";
             for (int t: modelSettings.getThr())
                 thrs += "_" + QString::number(t);
-            imwrite(qPrintable(saveres + "/" + imginfo.baseName() +
+            imwrite(qPrintable(saveResults + "/" + imginfo.baseName() +
                                "_3downsampled_" + thrs + "." +
                                imginfo.completeSuffix()),
                     downsampledImages[img]);
 
             //save the reconstructed
-            imwrite(qPrintable(saveres + "/" + imginfo.baseName() +
+            imwrite(qPrintable(saveResults + "/" + imginfo.baseName() +
                                "_4reconstructed_" + thrs +
                                "_npatt" + QString::number(modelSettings.getNPatt()) +
                                "_bwidth" + QString::number(modelSettings.getBwidth()).replace(".","o") +
@@ -195,5 +205,7 @@ void ModelShrimp::runMS()
         }
     }
 
-    writePatternBank();
+    if (savePB != NULL) {
+        writePatternBank(savePB);
+    }
 }

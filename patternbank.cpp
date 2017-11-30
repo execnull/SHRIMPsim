@@ -14,18 +14,10 @@ PatternBank::PatternBank()
 
 }
 
-//Pattern Bank constructor. The pattern bank space and the frequency bank are usin the levels of grey
-//specified by the user to find the memory that they need 
-PatternBank::PatternBank(Settings s) : settings(s)
+PatternBank::~PatternBank()
 {
-    qDebug() << "PatternBank: Created for greyscale" << settings.getIsGreyscale();
-    if (!settings.getIsGreyscale()) {
-        pspace = 1 << (DIM * DIM);
-    }
-    else
-        pspace = 1 << (2 * DIM * DIM);
-    pbank = new int[pspace]();
-    freqbank = new double[pspace]();
+    delete[] pbank;
+    delete[] freqbank;
 }
 
 //Set the list of images to work on. 
@@ -48,44 +40,56 @@ bool PatternBank::write(QJsonObject &json) const
 }
 
 //Del Viva's entropy function
-double PatternBank::entropy(const double p)
+double PatternBank::entropy(const double p, const int npatt, const double bwidth)
 {
-    return -p * log10(p) / max(1/(double)settings.getNPatt(), p/settings.getBwidth());
+    qDebug() << "entropy " << p << " " << log10(p);
+    return -p * log10(p) / max(1/(double)npatt, p/bwidth);
 }
 
-int PatternBank::findPatterns(const Mat& img)
+int PatternBank::findPatterns(const Mat& img, const QVector<int> &thr)
 {
     int npatt = 0;
     for (int y = 0; y < img.rows - DIM + 1; y++) {
         for (int x = 0; x < img.cols - DIM + 1; x++) {
             npatt++;
             Mat p = img(Rect(x, y, DIM, DIM)).clone();
-            pbank[Utils::getPatternAddress(p, DIM, settings.getThr())]++;
+            pbank[Utils::getPatternAddress(p, DIM, thr)]++;
         }
     }
     return npatt;
 }
 
-bool PatternBank::createPatternBank()
+bool PatternBank::createPatternBank(Settings* const settings)
 {
-    qDebug() << "PatternBank: create Pattern Bank from" << imagelist.size() << "images";
+    qDebug() << "PatternBank: Create Pattern Bank. ";
+    if (!settings->getIsGreyscale()) {
+        pspace = 1 << (DIM * DIM);
+    }
+    else
+        pspace = 1 << (2 * DIM * DIM);
+    pbank = new int[pspace]();
+    freqbank = new double[pspace]();
+
     int npatt = 0;
 
     //find all the patterns in the image list
+    qDebug() << "find patterns in image list";
     for (const auto& img: imagelist.keys()) {
         qDebug() << img ;
-        npatt += findPatterns(imagelist.value(img));
+        npatt += findPatterns(imagelist.value(img), settings->getThr());
     }
 
-    //qDebug() << "PatternBank: found" << npatt << "patterns";
+    qDebug() << "PatternBank: found" << npatt << "patterns";
 
     for(int i = 0; i < pspace; i++) {
-        //std::cout << std::hex << "0x" << std::setw(3) << std::setfill('0') << i <<
-        //" 0x" <<  std::setw(8) << std::setfill('0') << pbank[i] << std::dec << std::endl;
         if (pbank[i] != 0) {
             double pi = pbank[i] / (double) npatt;
-            freqbank[i] = entropy(pi);
+            freqbank[i] = entropy(pi, settings->getNPatt(), settings->getBwidth());
         }
+        std::cout << i << std::hex << " 0x" << std::setw(3) << std::setfill('0') << i
+        << " 0x" <<  std::setw(8) << std::setfill('0') << pbank[i]
+                     << std::dec << " " << freqbank[i] << std::endl;
+
     }
 
     //N PATTERNS
@@ -93,7 +97,7 @@ bool PatternBank::createPatternBank()
     for (int i = 0; i < pspace; ++i) {
         q.push(std::pair<double, int>(freqbank[i], i));
     }
-    int k = settings.getNPatt(); // number of indices we need
+    int k = settings->getNPatt(); // number of indices we need
     for (int i = 0; i < k; ++i) {
         int ki = q.top().second;
         accepted_patt.push_back(ki);
@@ -102,5 +106,13 @@ bool PatternBank::createPatternBank()
 
     qDebug() << "PatternBank: selected" << accepted_patt.size() << "patterns";
 
+    return true;
+}
+
+bool PatternBank::setPatternBank(const QJsonArray& pb)
+{
+    accepted_patt.clear();
+    for (auto p: pb)
+        accepted_patt.push_back(p.toInt());
     return true;
 }

@@ -1,6 +1,8 @@
 #include "settings.h"
 #include <QDebug>
 #include <QString>
+#include <QStringList>
+#include <QJsonObject>
 #include <QJsonArray>
 
 
@@ -27,7 +29,7 @@ Settings::Settings(int npatt, double bwidth, int thr1, int thr2 = 0, int thr3 = 
     thr.push_back(thr3);
 }
 
-void Settings::setThr(QStringList list)
+void Settings::setThr(const QStringList list)
 {
     thr.clear();
     if (list.size() == 1)
@@ -38,6 +40,19 @@ void Settings::setThr(QStringList list)
         thr.push_back(list[2].toInt());
     }
 }
+
+void Settings::setThr(const QJsonArray list)
+{
+    thr.clear();
+    if (list.size() == 1)
+        thr.push_back(list[0].toInt());
+    else if (list.size() == 3) {
+        thr.push_back(list[0].toInt());
+        thr.push_back(list[1].toInt());
+        thr.push_back(list[2].toInt());
+    }
+}
+
 
 
 QString Settings::getName()
@@ -84,5 +99,5 @@ void Settings::write(QJsonObject &json) const
     foreach (const int t, thr) {
         thrs.append(t);
     }
-    json["thrs"] = thrs;
+    json["thr"] = thrs;
 }

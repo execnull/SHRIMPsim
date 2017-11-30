@@ -16,22 +16,25 @@ class ModelShrimp
 {
 public:
     ModelShrimp();
+    ~ModelShrimp();
 
     /*!
       Function parsing the settings. Currently only one is available, for the command line.
       However, more can be provided, e.g. to parse the settings from the gui.
     */
     void parseSettings(QCommandLineParser &parser);
-
+    /*!
+     * Function adding an image to be processed by the model
+     */
     void addImage(QFileInfo& file);
 
-    void getOriginalImages();
+    QStringList getLoadedImages();
 
     /*!
       Function loading the Pattern Bank from the class
     */
-    void loadPatternBank();
-    bool writePatternBank();
+    bool loadPatternBank(const QString pblocation);
+    bool writePatternBank(const QString pblocation);
 
     /*!
       Function that takes all the information and runs the simulation. 
@@ -40,18 +43,15 @@ public:
 
 private:
     Settings modelSettings;
-    PatternBank* pb;
+    PatternBank pb;
 
     QMap<QString, Mat> originalImages;
     QMap<QString, Mat> greyscalelImages;
     QMap<QString, Mat> downsampledImages;
     QMap<QString, Mat> reconstructedImages;
 
-    bool savePB = false;
-    bool saveResults = false;
-    QString saveres;
-
-
+    QString savePB = NULL;
+    QString saveResults = NULL;
 };
 
 #endif // MODELSHRIMP_H

@@ -11,9 +11,6 @@ qshrimp::qshrimp(ModelShrimp *ms, QWidget *parent) :
     ui->setupUi(this);
     scaleFactor = 1.0;
 
-    qDebug() << "OK lads, let's do shit" ;
-
-
     //Create the different tabs to be shown.
     for (size_t im = Original; im != ImageTypeCount; ++im) {
         QLabel* label = new QLabel();
@@ -29,8 +26,8 @@ qshrimp::qshrimp(ModelShrimp *ms, QWidget *parent) :
         scroll->setVisible(false);
         scrollArea.append(scroll);
 
-      //  ui->imagesTab->insertTab(-1, scroll, imageName(im));
-      //  ui->imagesTab->setTabEnabled(im, false);
+        //ui->imagesTab->insertTab(-1, scroll, imageName(im));
+        //ui->imagesTab->setTabEnabled(im, false);
     }
 
 
@@ -68,6 +65,8 @@ static void initializeImageFileDialog(QFileDialog &dialog, QFileDialog::AcceptMo
         dialog.setDefaultSuffix("jpg");
 }
 
+
+//Function to load the image files
 bool qshrimp::loadFile(const QStringList &fileName)
 {
     QImageReader reader(fileName.first());
@@ -81,7 +80,8 @@ bool qshrimp::loadFile(const QStringList &fileName)
         modelshrimp->addImage(f);
     }
 
-    //imageList->setStringList(modelshrimp->getLoadedImages());
+    qDebug() << "loadFile setting image list";
+    imageList->setStringList(modelshrimp->getLoadedImages());
 
 //    imageList->setStringList(fileName);
 //    QModelIndex index = imageList->index(0,0);

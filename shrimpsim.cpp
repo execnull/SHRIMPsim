@@ -120,7 +120,6 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, QString *err
         return CommandLineError;
     }
 
-
     return CommandLineOk;
 }
 
@@ -163,7 +162,6 @@ int main(int argc, char *argv[])
     //loads the Pattern Bank and then executes the simulation
     if (!parser.isSet("gui")) {
         ms.parseSettings(parser);
-        ms.loadPatternBank();
         ms.runMS();
         return 0;
     }

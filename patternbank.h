@@ -15,22 +15,21 @@ class PatternBank
 {
 public:
     PatternBank();
-    PatternBank(Settings s);
+    ~PatternBank();
 
-    bool createPatternBank();
+    bool createPatternBank(Settings* const settings);
     bool write(QJsonObject &json) const;
-    bool setPatternBank();
+    bool setPatternBank(const QJsonArray& pb);
     QVector<int> getPatternBank() {return accepted_patt;};
 
     void setImagelist(QMap<QString, Mat> imagelist);
     //void addImage(QString path);
 
 private:
-    double entropy(const double p);
-    int findPatterns(const Mat& img);
+    double entropy(const double p, const int npatt, const double bwidth);
+    int findPatterns(const Mat& img, const QVector<int> &thr);
 
     QMap<QString, Mat> imagelist;
-    Settings  settings;
     long int pspace = 0;
     int* pbank = NULL;
     double* freqbank = NULL;

@@ -5,6 +5,7 @@
 #include <QVector>
 #include <QDebug>
 #include <QJsonObject>
+#include <QJsonArray>
 
 /*!
   Class storing the settings of the model. This was created to transport the information easier and to
@@ -19,7 +20,8 @@ public:
 
     void setNpatt(int npatt) { this->npatt = npatt;}; ///
     void setBwidth(double bwidth) { this->bwidth = bwidth;};
-    void setThr(QStringList list);
+    void setThr(const QStringList list);
+    void setThr(const QJsonArray list);
 
     QString getName();
     int getNPatt();

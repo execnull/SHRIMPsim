@@ -155,7 +155,7 @@ inline cv::Mat QImageToCvMat( const QImage &inImage, bool inCloneImageData = tru
     }
 
     default:
-        qWarning() << "ASM::QImageToCvMat() - QImage format not handled in switch:" << inImage.format();
+        qWarning() << "ASM::QImageToCvMat() - QImage format not handled in switch :" << inImage.format();
         break;
     }
 
